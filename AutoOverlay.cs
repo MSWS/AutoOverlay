@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using HarmonyLib;
 using RimWorld;
-using UnityEngine;
 using Verse;
 
 namespace AutoOverlay {
@@ -14,28 +13,8 @@ namespace AutoOverlay {
     }
   }
 
-  // [HarmonyPatch(typeof(GenDraw), nameof(GenDraw.DrawRadiusRing),
-  //   typeof(IntVec3), typeof(float))]
-  // public class PatchGenDraw_RandomRadius {
-  //   private static readonly float startTime = Time.time;
-  //
-  //   static bool Prefix(IntVec3 center, float radius) {
-  //     GenDraw.DrawRadiusRing(center, radius, getRainbowColor());
-  //     return false;
-  //   }
-  //
-  //   private static Color getRainbowColor() {
-  //     var t = (Time.time - startTime) / 5f; // 5 seconds for a full cycle
-  //     t = t - Mathf.Floor(t);               // Normalize to [0, 1]
-  //     return Color.HSVToRGB(t, 1f, 1f);     // Full saturation and brightness
-  //   }
-  // }
-
-  [HarmonyPatch(typeof(Thing), nameof(Thing.DrawExtraSelectionOverlays))]
-  public class PatchThing_DrawExtraSelectionOverlays {
-    static bool Prefix(Thing __instance) { return false; }
-  }
-
+  // The game calls this method twice, resulting in duplicate overlays.
+  // For optimization we prevent the second call from executing.
   [HarmonyPatch(typeof(Building_TurretGun),
     nameof(Building_TurretGun.DrawExtraSelectionOverlays))]
   public class PatchBuilding_TurretGun_DrawExtraSelectionOverlays {
@@ -59,10 +38,6 @@ namespace AutoOverlay {
         return;
       }
 
-      // var flattened = innerArray.Where(x => x != null)
-      //  .SelectMany(x => x)
-      //  .Where(x => x.EntityToBuild() == __instance.PlacingDef);
-      // var blueprints = flattened as Blueprint[] ?? flattened.ToArray();
       var blueprints = getRelatedBlueprints(__instance.PlacingDef as ThingDef);
 
       foreach (var blueprint in blueprints) renderBlueprint(blueprint);
@@ -104,18 +79,14 @@ namespace AutoOverlay {
           continue;
         }
 
-        try {
-          placeWorker.AllowsPlacing(buildableDef, position, rotation,
-            Find.CurrentMap, thingToIgnore);
-          placeWorker.DrawGhost(buildableDef as ThingDef, position, rotation,
-            thingToIgnore.DrawColor);
-        } catch (Exception e) {
-          Log.Error(
-            $"Error in DrawPlaceMouseAttachments for {buildableDef.defName}: {e.Message}");
-        }
+        placeWorker.AllowsPlacing(buildableDef, position, rotation,
+          Find.CurrentMap, thingToIgnore);
+        placeWorker.DrawGhost(buildableDef as ThingDef, position, rotation,
+          thingToIgnore.DrawColor);
       }
     }
 
+    // Group related buildings to show relevant overlays.
     private static readonly List<Predicate<string>> relatedBuildingTypes =
       new List<Predicate<string>> {
         s => s.StartsWith("TrapIED_"),
