@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ModMetaData>
+  <name>AutoOverlay</name>
+  <author>MSWS</author>
+  <packageId>MSWS.AutoOverlay</packageId>
+  <supportedVersions>
+    <li>1.6</li>
+  </supportedVersions>
+  <description>This mod automatically shows relevant overlay ranges when placing buildings (eg: turrets, firefoam packs, etc.)</description>
+</ModMetaData>
